@@ -3,20 +3,26 @@ name: Stock Bot
 on:
   schedule:
     - cron: "0 6 * * *"   # 06:00 בבוקר UTC
-    - cron: "0 12 * * *"  # 14:00 בצהריים UTC (שעתיים לפני פתיחת מסחר)
-  workflow_dispatch:
+    - cron: "0 12 * * *"  # 14:00 בצהריים UTC
+  workflow_dispatch:       # מאפשר לך גם להפעיל ידנית מהכפתור בגיטהאב
 
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Show files
+        run: ls -R
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+
       - name: Install dependencies
         run: pip install -r requirements.txt
+
       - name: Run bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
