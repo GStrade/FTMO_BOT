@@ -1,13 +1,16 @@
- name: Test Stock Bot
+name: Test Stock Bot
 
 on:
-  workflow_dispatch:   # הפעלה ידנית בלבד
+  workflow_dispatch:   # תופיע לך כפתור "Run workflow" בגיטהאב
 
 jobs:
   run-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Show files
+        run: ls -R
 
       - name: Set up Python
         uses: actions/setup-python@v4
