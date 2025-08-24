@@ -1,0 +1,7 @@
+yfinance
+mplfinance
+matplotlib
+requests
+pandas
+python-telegram-bot
+lxml
