@@ -4,11 +4,37 @@ import mplfinance as mpf
 import requests
 import pandas as pd
 from telegram import Bot
+from datetime import datetime, timedelta
 
 # === קריאת משתנים מהסביבה ===
 TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 bot = Bot(token=TOKEN)
+
+# צור תיקייה לגרפים אם לא קיימת
+CHARTS_DIR = "charts"
+os.makedirs(CHARTS_DIR, exist_ok=True)
+
+# ===== מחיקה אוטומטית של גרפים ישנים =====
+def clean_old_charts(days=7):
+    now = datetime.now()
+    for file in os.listdir(CHARTS_DIR):
+        path = os.path.join(CHARTS_DIR, file)
+        if os.path.isfile(path):
+            modified_time = datetime.fromtimestamp(os.path.getmtime(path))
+            if now - modified_time > timedelta(days=days):
+                os.remove(path)
+
+# ===== כתיבה ללוג =====
+def write_log(text):
+    log_file = "log.txt"
+    # אם הקובץ לא קיים – ניצור אותו עם כותרת
+    if not os.path.exists(log_file):
+        with open(log_file, "w", encoding="utf-8") as f:
+            f.write("===== Stock Bot Logs =====\n")
+    # הוספת שורה חדשה ללוג
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(f"\n[{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}] {text}\n")
 
 # ===== חדשות על מניה =====
 def get_news(ticker):
@@ -59,13 +85,12 @@ def generate_chart(ticker, entry, stop, tp1, tp2, tp3):
     if hist.empty:
         return None
 
-    # קווים אופקיים
     hlines = dict(hlines=[entry, stop, tp1, tp2, tp3],
                   colors=["g","r","b","b","b"],
                   linewidths=[1.5,1.5,1,1,1],
                   linestyle="--")
 
-    filepath = f"{ticker}.png"
+    filepath = os.path.join(CHARTS_DIR, f"{ticker}.png")
     mpf.plot(hist, type="candle", style="yahoo",
              title=f"{ticker} - גרף נרות",
              hlines=hlines,
@@ -82,6 +107,10 @@ def scan_stocks(limit=5, strict=True):
 
     for t in tickers:
         try:
+            # תיקון סימבולים שלא עובדים ב-Yahoo
+            if "." in t:
+                t = t.replace(".", "-")
+
             stock = yf.Ticker(t)
             info = stock.info
             sector = info.get("sector", "לא ידוע")
@@ -99,7 +128,6 @@ def scan_stocks(limit=5, strict=True):
             avg_vol = hist['Volume'].tail(5).mean()
             unusual_vol = today['Volume'] > (2 * avg_vol if strict else 1.2 * avg_vol)
 
-            # קריטריונים
             if abs(change) >= (3 if strict else 2) and unusual_vol:
                 entry = today['Close']
                 stop = entry * 0.97   # סטופ ~3%
@@ -124,15 +152,20 @@ def scan_stocks(limit=5, strict=True):
 
 # ===== שליחת דוח =====
 def send_report():
+    clean_old_charts(days=7)  # 🧹 מנקה גרפים ישנים לפני הרצה
+
     stocks = scan_stocks()
 
-    # fallback אם לא נמצאו מניות
     if not stocks:
-        bot.send_message(chat_id=CHAT_ID, text="⚠️ לא נמצאו מניות לפי הקריטריונים הקשוחים. מחפש קריטריונים חלופיים...")
+        msg = "⚠️ לא נמצאו מניות לפי הקריטריונים הקשוחים. מחפש קריטריונים חלופיים..."
+        bot.send_message(chat_id=CHAT_ID, text=msg)
+        write_log(msg)
         stocks = scan_stocks(strict=False)
 
     if not stocks:
-        bot.send_message(chat_id=CHAT_ID, text="❌ גם בקריטריונים חלופיים לא נמצאו מניות להיום.")
+        msg = "❌ גם בקריטריונים חלופיים לא נמצאו מניות להיום."
+        bot.send_message(chat_id=CHAT_ID, text=msg)
+        write_log(msg)
         return
 
     for s in stocks:
@@ -155,6 +188,7 @@ def send_report():
         )
 
         bot.send_message(chat_id=CHAT_ID, text=msg)
+        write_log(msg)
         if chart:
             bot.send_photo(chat_id=CHAT_ID, photo=open(chart, "rb"))
 
