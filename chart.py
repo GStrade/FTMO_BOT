@@ -7,13 +7,21 @@ from datetime import datetime
 def draw_signal_chart(symbol: str, timeframe: str, df: pd.DataFrame,
                       entry: float, stop: float, tps, save_dir: str, candles: int = 150) -> str:
     os.makedirs(save_dir, exist_ok=True)
+
+    # ודא שכל הערכים מספריים
+    df = df.copy()
+    for col in ["Open", "High", "Low", "Close"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df.dropna(subset=["Open", "High", "Low", "Close"])
+
+    # חתך של מספר נרות אחרונים
     tail = df.iloc[-candles:].copy()
 
     # יצירת הגרף
     fig, ax = mpf.plot(
         tail,
-        type='candle',
-        style='charles',
+        type="candle",
+        style="charles",
         volume=True,
         title=f"{symbol} ({timeframe})",
         returnfig=True
