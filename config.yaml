@@ -1,0 +1,32 @@
+
+symbols:
+  - EURUSD=X
+  - GBPUSD=X
+  - USDJPY=X
+  - XAUUSD=X
+
+timeframes:
+  - 1h
+  - 1d
+
+breakout:
+  enabled: true
+  atr_period: 14
+  atr_mult_stop: 1.5
+  breakout_buffer_pips: 2
+  min_rr: 2.0
+
+ema_rsi:
+  enabled: true
+  ema_fast: 50
+  ema_slow: 200
+  rsi_period: 14
+  rsi_pullback_long: 45
+  rsi_pullback_short: 55
+  atr_period: 14
+  atr_mult_stop: 1.2
+  min_rr: 2.0
+
+chart:
+  candles: 150
+  save_dir: charts
