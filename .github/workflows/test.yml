@@ -1,0 +1,37 @@
+name: Test FTMO Bot
+
+on:
+  workflow_dispatch:   # הרצה ידנית בלבד
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run bot test
+        env:
+          TOKEN_FTMO: ${{ secrets.TOKEN_FTMO }}
+          CHAT_ID_FTMO: ${{ secrets.CHAT_ID_FTMO }}
+        run: |
+          python - <<'EOF'
+          import os, requests
+          TOKEN = os.getenv("TOKEN_FTMO")
+          CHAT_ID = os.getenv("CHAT_ID_FTMO")
+          url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+          data = {"chat_id": CHAT_ID, "text": "✅ Test successful! The FTMO bot is connected."}
+          r = requests.post(url, data=data)
+          r.raise_for_status()
+          print("Message sent:", r.json())
+          EOF
