@@ -1,40 +1,20 @@
-
-import os
-import json
-import math
-import yaml
-import requests
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
-from dotenv import load_dotenv
-from data import fetch_history
-from strategies import breakout_daily, ema_rsi_pullback
-
-load_dotenv()
-
-# Token fallbacks for 1:1 with stock bot repo style
-TOKEN = (
-    os.getenv("TOKEN_FTMO")
-    or os.getenv("TOKEN_STOCKS")
-    or os.getenv("BOT_TOKEN")
-)
-CHAT_ID = (
-    os.getenv("CHAT_ID_FTMO")
-    or os.getenv("CHAT_ID_STOCKS")
-    or os.getenv("CHAT_ID")
-)
-
-ACCOUNT_SIZE = float(os.getenv("ACCOUNT_SIZE", "100000"))
-RISK_PER_TRADE_PERCENT = float(os.getenv("RISK_PER_TRADE_PERCENT", "0.5"))
-
-if not TOKEN or not CHAT_ID:
-    raise SystemExit("Missing TOKEN_FTMO/CHAT_ID_FTMO (or TOKEN_STOCKS/CHAT_ID_STOCKS) in environment.")
-
-def tg_send_message(text: str, parse_mode: str = "Markdown"):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    data = {"chat_id": CHAT_ID, "text": text, "parse_mode": parse_mode, "disable_web_page_preview": True}
-    r = requests.post(url, data=data, timeout=30)
-    r.raise_for_status()
+def format_signal_message(idea: dict) -> str:
+    entry, stop, tps = idea["entry"], idea["stop"], idea["targets"]
+    msg = (
+        f"📊 *FTMO Signal*\n\n"
+        f"🪙 *Symbol*: {idea['symbol']}\n"
+        f"⏱ *Timeframe*: {idea['timeframe']}\n"
+        f"📈 *Direction*: {idea['direction']}\n\n"
+        f"🎯 *Entry*: `{entry:.2f}`\n"
+        f"🛑 *Stop*: `{stop:.2f}`\n\n"
+        f"🎯 *Targets*:\n"
+        f" • TP1 = {tps[0]:.2f} (R:R 1:1)\n"
+        f" • TP2 = {tps[1]:.2f} (R:R 1:2)\n"
+        f" • TP3 = {tps[2]:.2f} (R:R 1:3)\n\n"
+        f"ℹ️ *Reason*: {idea['reason']}\n"
+        f"⚠️ *Note*: אות לימודי/חינוכי בלבד; לא פקודת מסחר"
+    )
+    return msg    r.raise_for_status()
     return r.json()
 
 def tg_send_photo(photo_path: str, caption: str = ""):
